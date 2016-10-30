@@ -1,6 +1,6 @@
 
 
-## Version 1
+## Ver2, 2016-10-30
 
 rm(list = ls())                                # Remove all
 setwd("D:/OneDrive/GVC_China/Rcode/")          # Working Directory
@@ -23,11 +23,14 @@ ciid.old <- colnames(DATA.ICIOeconZ[1,,])
 SN.old   <- length(ciid.old)
 id.old   <- sapply(strsplit(ciid.old, "[_]"), as.array)
 
-cid   <- unique(id.old[1,])
-iid.old <- unique(str_sub(id.old[2,],-3,-1))
-N     <- length(cid)
-S.old <- length(iid.old)
+cid    <- unique(id.old[1,])
+N      <- length(cid)
 cid[(N-6):N] <- c("MEX1","MEX2","MEX3","CHN1","CHN2","CHN3","CHN4")
+cid.np <- unique(substr(cid,1,3))
+N.np   <- length(cid.np)
+
+iid.old <- unique(str_sub(id.old[2,],-3,-1))
+S.old   <- length(iid.old)
 
 ciid.old <- paste0(rep(cid,each=S.old),"_",iid.old)
 id.old   <- sapply(strsplit(ciid.old, "[_]"), as.array)
@@ -68,9 +71,9 @@ pre <- t(post)                                   # pre  = pre adjustment matrix 
 
 
 # Re-assign NEW Identifiers
-N       <- length(cid)
-S       <- length(iid)
-id      <- sapply(strsplit(ciid,"_"), unique)
+S     <- length(iid)
+SN.np <- S*N.np
+id    <- sapply(strsplit(ciid,"_"), unique)
 colnames(id) <- ciid
 
 
@@ -114,6 +117,8 @@ LeonInv <- zeros(length(period),SN,SN)
 dimnames(LeonInv) <- list(year,ciid,ciid)
 FD <- zeros(length(period),SN,N)
 dimnames(FD) <- list(year,ciid,paste0("FD_",cid))
+FD.np <- zeros(length(period),SN,N.np)
+dimnames(FD.np) <- list(year,ciid,paste0("FD_",cid.np))
 FDD <- zeros(length(period),SN,SN)
 dimnames(FDD) <- list(year,ciid,ciid)
 MX <-  zeros(length(period),SN,SN)
@@ -148,7 +153,11 @@ for(yr in period) {
       colnames(FD.old) <- c(cid,"DISC")
       FD.old[,"ROW"] <- FD.old[,"ROW"]+FD.old[,"DISC"]  # Discrepencies in FD (the last column) are merged to ROW
       FD[yr,,] <- pre %*% FD.old[,1:length(cid)]
-
+      
+      FD.old[,"CHN"] <- FD.old[,"CHN1"]                 # All China's FDs are included in "CHN1" column
+      FD.old[,"MEX"] <- FD.old[,"MEX1"]                 # All Mexico's FDs are included in "MEX1" column
+      FD.np[yr,,] <- pre %*% FD.old[,1:length(cid.np)]  # FD = Final Demand Matrix for N.np countries
+      
       
       # Generating FDD (Final Demand Diagonalized) matrix
       for (i in 1:N) {                                            # i indicates ith country
@@ -161,7 +170,7 @@ for(yr in period) {
 
 
 # Save objects
-save(S,N,SN,id,cid,iclass,iid,iid.eng,ciid,M,A,y,y.nzero,va,va.nzero,r,LeonInv,FD,FDD,MX,FX, 
+save(S,N,N.np,SN,id,cid,cid.np,iclass,iid,iid.eng,ciid,M,A,y,y.nzero,va,va.nzero,r,LeonInv,FD,FD.np,FDD,MX,FX, 
      file=paste0(data,"ICIO_",iclass,"_matrix.RData"))
       
 
